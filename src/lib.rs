@@ -2,7 +2,7 @@ use num::complex::Complex;
 use std::f64::consts::PI;
 use std::ops::{Add, Div, Mul, Sub};
 
-trait Field:
+pub trait Field:
     Add<Output = Self> + Mul<Output = Self> + Sub<Output = Self> + Div<Output = Self> + Sized
 {
     fn one() -> Self;
@@ -17,8 +17,6 @@ impl Field for Complex<f64> {
         Complex::new(1.0, 0.0)
     }
 }
-
-fn main() {}
 
 fn combine_dfts_time<T: Field + Copy>(y_1: &mut [T], y_2: &mut [T], w_n: &[T], n: usize) {
     let len = y_1.len();
@@ -106,14 +104,15 @@ fn bit_reverse_inplace<T: Field + Copy + Default>(input: &mut [T]) {
         }
     }
 }
-trait FFT<T>
+pub trait FFT<T>
 where
     T: Field + Copy + Default,
     for<'a> &'a Self: IntoIterator<Item = &'a T>,
-    // Self: std::convert::AsRef<[T]>,
     for<'a> <&'a Self as std::iter::IntoIterator>::IntoIter: ExactSizeIterator,
     Self: Sized,
 {
+    fn compute_half_w_vec(n: usize) -> Vec<T>;
+
     fn dft_decimation_in_time(&self) -> Vec<T> {
         assert!(is_power_of_two(self.into_iter().len()));
         let n = self.into_iter().len();
@@ -132,7 +131,6 @@ where
         }
         output
     }
-    fn compute_half_w_vec(n: usize) -> Vec<T>;
     fn inverse_dft_decimation_in_time(&self) -> Vec<T> {
         // check that input_sec is a power of 2
         assert!(is_power_of_two(self.into_iter().len()));
@@ -186,6 +184,7 @@ where
         output
     }
 }
+
 impl FFT<Complex<f64>> for Vec<Complex<f64>> {
     fn compute_half_w_vec(n: usize) -> Vec<Complex<f64>> {
         let w = Complex::new(0.0, -2.0 * PI / n as f64).exp();
